@@ -1,27 +1,59 @@
 """Workforce Analytics Hub - self-service dashboard.
 
 Run:  streamlit run app/streamlit_app.py          (full data, after `wfa fetch` + `wfa build`)
-      WFA_SAMPLE=1 streamlit run app/streamlit_app.py   (committed sample, after `wfa --sample build`)
+      WFA_SAMPLE=1 streamlit run app/streamlit_app.py   (committed sample)
+
+Without a full warehouse (e.g. on Streamlit Community Cloud, where only the repo is available) the app
+uses the committed sample, builds its warehouse on first run, and labels every page as sample data.
 """
 from __future__ import annotations
 
+import dataclasses
 import io
 import json
+import sys
+import tempfile
 from dataclasses import asdict
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
-from wfa import charts, forecast, metrics, reports, scorecard, settings
-from wfa.metrics import MetricQuery, fmt, fmt_delta
-from wfa.qa import ask
-from wfa.qa.vocab import Vocabulary
-from wfa.warehouse import connect
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(ROOT / "src"))  # hosted deployments install requirements.txt, not this package
+
+from wfa import charts, forecast, metrics, reports, scorecard, settings, warehouse  # noqa: E402
+from wfa.metrics import MetricQuery, fmt, fmt_delta  # noqa: E402
+from wfa.qa import ask  # noqa: E402
+from wfa.qa.vocab import Vocabulary  # noqa: E402
+from wfa.warehouse import connect  # noqa: E402
 
 st.set_page_config(page_title="Workforce Analytics Hub", layout="wide")
-PATHS = settings.get_paths()
 CAT, DIMS, GOV = settings.metric_catalog(), settings.dimensions(), settings.governance()
 K = GOV["privacy"]["min_cell_size"]
+
+
+def resolve_paths() -> settings.DataPaths:
+    paths, sample = settings.get_paths(), settings.get_paths(sample=True)
+    if not paths.is_sample and not paths.warehouse.exists() and sample.manifest.exists():
+        return sample  # no full data here (e.g. hosted demo): use the committed sample, labelled below
+    return paths
+
+
+@st.cache_resource(show_spinner="Building the sample warehouse (first visit only)...")
+def ensure_warehouse(paths: settings.DataPaths) -> Path:
+    if paths.warehouse.exists() or not paths.is_sample:
+        return paths.warehouse
+    try:
+        return warehouse.build(paths)
+    except OSError:  # read-only checkout: build in the temp folder instead
+        alt = dataclasses.replace(paths, warehouse=Path(tempfile.gettempdir()) / "wfa_sample_warehouse.duckdb")
+        return alt.warehouse if alt.warehouse.exists() else warehouse.build(alt)
+
+
+PATHS = resolve_paths()
+WAREHOUSE = ensure_warehouse(PATHS)
 
 
 @st.cache_resource
@@ -30,11 +62,11 @@ def _base_connection(path: str):
 
 
 def con():
-    return _base_connection(str(PATHS.warehouse)).cursor()
+    return _base_connection(str(WAREHOUSE)).cursor()
 
 
-if not PATHS.warehouse.exists():
-    st.error(f"No warehouse found at {PATHS.warehouse}. Run `wfa fetch` then `wfa build` "
+if not WAREHOUSE.exists():
+    st.error(f"No warehouse found at {WAREHOUSE}. Run `wfa fetch` then `wfa build` "
              "(or `wfa --sample build` and set WFA_SAMPLE=1).")
     st.stop()
 
@@ -102,8 +134,13 @@ st.caption(f"{len(AGENCIES)} NYC agencies across {len([x for x in LOCATIONS if x
            f"boroughs plus outside-NYC sites · public payroll records FY{YEARS[0]}-FY{YEARS[-1]} (NYC Open Data) · "
            f"names never loaded · groups under {K} employees suppressed")
 if PATHS.is_sample:
-    st.warning("SAMPLE MODE: a seeded random sample of real payroll rows. Counts describe the sample, not the "
-               "actual workforce. Build the full warehouse for real figures.")
+    sm = json.loads(PATHS.manifest.read_text(encoding="utf-8")) if PATHS.manifest.exists() else {}
+    n_rows = sum(f["source_row_count"] for f in sm.get("files", {}).values())
+    st.warning(f"SAMPLE DATA: this view runs on a seeded random sample of real payroll records "
+               f"({sm.get('per_cell', '?')} per agency per fiscal year, {n_rows:,} in total). Rates are computed "
+               "on the sample and headcounts are sample counts, not the actual workforce. Results on the full "
+               "1.1M records are in the [project README](https://github.com/sreeyagalla/workforce-analytics-hub"
+               "#results-measured-on-the-full-fetched-dataset).")
 
 f1, f2, f3 = st.columns([1, 3, 3])
 fy = f1.selectbox("Fiscal year", YEARS[::-1], index=0)

@@ -1,0 +1,13 @@
+# Runtime dependencies for the dashboard (used by Streamlit Community Cloud).
+# Local development: pip install -e ".[dev]" (pyproject.toml) installs the same pins plus pytest.
+duckdb==1.5.5
+pandas==3.0.6
+numpy==2.5.3
+pyarrow==25.0.1
+PyYAML==6.0.3
+requests==2.34.2
+streamlit==1.64.0
+plotly==7.1.0
+matplotlib==3.11.2
+openpyxl==3.1.5
+python-pptx==1.0.2

@@ -108,6 +108,26 @@ def test_pptx_deck_is_built_with_grounded_headline(report_data, sample_ref, tmp_
     assert "SAMPLE DATA" in text
 
 
+def test_dashboard_without_full_data_falls_back_to_labelled_sample(tmp_path, monkeypatch):
+    """Hosted deployments (Streamlit Community Cloud) only have the repo: the app must build its warehouse
+    from the committed sample on first run and label the view as sample data."""
+    import shutil
+
+    from streamlit.testing.v1 import AppTest
+    data = tmp_path / "data"
+    shutil.copytree(ROOT / "data" / "sample", data / "sample")
+    shutil.copytree(ROOT / "data" / "benchmarks", data / "benchmarks")
+    monkeypatch.setenv("WFA_DATA_DIR", str(data))
+    for var in ("WFA_SAMPLE", "WFA_WAREHOUSE", "ANTHROPIC_API_KEY"):
+        monkeypatch.delenv(var, raising=False)
+    at = AppTest.from_file(str(ROOT / "app" / "streamlit_app.py"), default_timeout=240)
+    at.run()
+    assert not at.exception, at.exception
+    assert (data / "sample_warehouse.duckdb").exists()
+    assert any("SAMPLE DATA" in w.value and "24,000 in total" in w.value for w in at.warning)
+    assert len(at.metric) >= 5
+
+
 def test_dashboard_renders_every_tab_and_answers_a_question(sample_paths, monkeypatch):
     from streamlit.testing.v1 import AppTest
     monkeypatch.setenv("WFA_SAMPLE", "1")
