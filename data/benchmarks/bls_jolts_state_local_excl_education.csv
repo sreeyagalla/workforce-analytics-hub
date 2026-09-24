@@ -1,0 +1,13 @@
+fiscal_year,measure,rate,series_id,industry
+2020,quits_rate,0.1,JTU929000000000000QUR,"State and local government, excluding education (national, not seasonally adjusted)"
+2021,quits_rate,0.11,JTU929000000000000QUR,"State and local government, excluding education (national, not seasonally adjusted)"
+2022,quits_rate,0.134,JTU929000000000000QUR,"State and local government, excluding education (national, not seasonally adjusted)"
+2023,quits_rate,0.118,JTU929000000000000QUR,"State and local government, excluding education (national, not seasonally adjusted)"
+2024,quits_rate,0.108,JTU929000000000000QUR,"State and local government, excluding education (national, not seasonally adjusted)"
+2025,quits_rate,0.101,JTU929000000000000QUR,"State and local government, excluding education (national, not seasonally adjusted)"
+2020,total_separations_rate,0.216,JTU929000000000000TSR,"State and local government, excluding education (national, not seasonally adjusted)"
+2021,total_separations_rate,0.194,JTU929000000000000TSR,"State and local government, excluding education (national, not seasonally adjusted)"
+2022,total_separations_rate,0.216,JTU929000000000000TSR,"State and local government, excluding education (national, not seasonally adjusted)"
+2023,total_separations_rate,0.204,JTU929000000000000TSR,"State and local government, excluding education (national, not seasonally adjusted)"
+2024,total_separations_rate,0.182,JTU929000000000000TSR,"State and local government, excluding education (national, not seasonally adjusted)"
+2025,total_separations_rate,0.179,JTU929000000000000TSR,"State and local government, excluding education (national, not seasonally adjusted)"

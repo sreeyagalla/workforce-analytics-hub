@@ -1,0 +1,47 @@
+# Governance rules applied by the pipeline, the dashboard, the report exports,
+# and the question-answering engine. One file so the rules can be reviewed in
+# one place and changed through version control.
+
+privacy:
+  # Columns that must never be requested, stored, or displayed.
+  pii_columns: [last_name, first_name, mid_init]
+  # Any metric cell whose population is below this size is suppressed
+  # everywhere (dashboard, Excel, PowerPoint, Q&A).
+  min_cell_size: 10
+  # The Q&A engine only answers aggregate questions.
+  allow_individual_level_queries: false
+
+locations:
+  # work_location_borough -> reporting location. Anything not listed maps to
+  # "Outside NYC" (e.g. upstate watershed sites); blanks map to "Unknown".
+  borough_map:
+    MANHATTAN: Manhattan
+    BROOKLYN: Brooklyn
+    QUEENS: Queens
+    BRONX: Bronx
+    RICHMOND: Staten Island
+  outside_label: Outside NYC
+  unknown_label: Unknown
+
+tenure_bands:
+  # [label, lower bound inclusive, upper bound exclusive] in years
+  - ["<1 yr", 0, 1]
+  - ["1-3 yrs", 1, 3]
+  - ["3-5 yrs", 3, 5]
+  - ["5-10 yrs", 5, 10]
+  - ["10-20 yrs", 10, 20]
+  - ["20+ yrs", 20, 200]
+
+data_quality:
+  # Warn when an agency's record volume moves more than this share year over year.
+  volume_change_warn: 0.25
+  # Agency start dates earlier than this are treated as invalid.
+  min_valid_start_date: "1940-01-01"
+
+scorecard:
+  # RAG status compares each unit to the all-in-scope value for the same year.
+  # For metrics where higher is worse: red if value >= baseline * red_ratio,
+  # amber if value >= baseline * amber_ratio, otherwise green.
+  amber_ratio: 1.10
+  red_ratio: 1.25
+  metrics: [headcount, turnover_rate, new_hire_attrition_rate, ot_hours_per_worker, avg_tenure_years]

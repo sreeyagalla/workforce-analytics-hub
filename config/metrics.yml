@@ -1,0 +1,184 @@
+# Governed metric catalog. This file is the single source of truth for metric
+# definitions: the dashboard, the Excel/PowerPoint exports, and the Q&A engine
+# all compute through it. SQL fragments are aggregate expressions evaluated
+# over fct_payroll (see src/wfa/warehouse.py for the derived flag columns).
+#
+# type:
+#   count      value = numerator
+#   ratio      value = numerator / denominator
+#   aggregate  value = value_sql
+#   turnover   value = separations / average(prior-FY, current-FY end-of-year headcount)
+# population_sql: group size used for small-cell suppression (config/governance.yml).
+# polarity: higher_is_worse | higher_is_better | neutral (drives scorecard RAG).
+
+dimensions:
+  agency:      {column: agency_name, label: Agency, plural: agencies}
+  location:    {column: location, label: Work location, plural: work locations}
+  title:       {column: title, label: Job title, plural: job titles}
+  tenure_band: {column: tenure_band, label: Tenure band, plural: tenure bands}
+  pay_basis:   {column: pay_basis, label: Pay basis, plural: pay basis groups}
+
+metrics:
+  headcount:
+    label: Headcount (end of year)
+    description: Payroll records still employed on June 30, the last day of the fiscal year.
+    definition: Count of records with June 30 status ACTIVE, ON LEAVE, or ON SEPARATION LEAVE.
+    type: count
+    numerator_sql: count(*) FILTER (WHERE is_employed_eoy)
+    population_sql: count(*) FILTER (WHERE is_employed_eoy)
+    format: count
+    explain: "employed at fiscal year end"
+    unit: employees
+    polarity: neutral
+    dimensions: [agency, location, title, tenure_band, pay_basis]
+    synonyms: [headcount, head count, number of employees, how many employees, employee count, staff count, workforce size, how many people work]
+    caveats: >-
+      A record is treated as one person in one agency for one fiscal year. Checked with a
+      server-side aggregate query (names never downloaded): in FY2024, 42 of 192,933 in-scope
+      records (21 groups) share a name, agency, and start date with another record.
+      Seasonal staff are not counted in end-of-year headcount.
+
+  separations:
+    label: Separations
+    description: Employees who left during the fiscal year.
+    definition: Count of records with June 30 status CEASED and regular hours > 0 in the fiscal year.
+    type: count
+    numerator_sql: count(*) FILTER (WHERE is_separation)
+    population_sql: count(*)
+    format: count
+    explain: "out of {population:count} payroll records"
+    unit: separations
+    polarity: higher_is_worse
+    dimensions: [agency, location, title, tenure_band, pay_basis]
+    synonyms: [separations, separated, exits, leavers, people left, employees left, how many left, terminations, attrition count]
+    caveats: >-
+      CEASED records with zero regular hours are excluded: they are residual or retroactive
+      payments to people who left in an earlier year (counting them would add 64% to FY2020-FY2025 separations).
+      The source does not distinguish voluntary from involuntary separations. Tenure band is
+      measured at June 30, so it can overstate tenure at exit by up to one year.
+
+  turnover_rate:
+    label: Turnover rate
+    description: Separations as a share of average headcount over the fiscal year.
+    definition: Separations / ((prior-FY end-of-year headcount + current-FY end-of-year headcount) / 2).
+    type: turnover
+    numerator_sql: count(*) FILTER (WHERE is_separation)
+    headcount_sql: count(*) FILTER (WHERE is_employed_eoy)
+    format: pct
+    explain: "{numerator:count} separations / {denominator:count} average headcount"
+    unit: of average headcount
+    polarity: higher_is_worse
+    dimensions: [agency, location, title, pay_basis]
+    not_defined_by:
+      tenure_band: "the people in a tenure band change every year, so the prior-year headcount is not the same group"
+    synonyms: [turnover, turnover rate, attrition, attrition rate, separation rate, churn, retention]
+    caveats: >-
+      Needs the prior fiscal year's headcount, so it is unavailable for the first loaded year.
+      Not defined by tenure band, because the people in a tenure band change every year.
+      "Retention" questions are answered with turnover (retention = 1 - turnover is not
+      reported separately to keep one governed definition).
+
+  new_hires:
+    label: New hires
+    description: Records whose agency start date falls inside the fiscal year.
+    definition: Count of records with agency_start_date between July 1 (FY-1) and June 30 (FY).
+    type: count
+    numerator_sql: count(*) FILTER (WHERE is_new_hire)
+    population_sql: count(*)
+    format: count
+    explain: "agency start date within the fiscal year"
+    unit: new hires
+    polarity: neutral
+    dimensions: [agency, location, title, pay_basis]
+    not_defined_by:
+      tenure_band: "every new hire falls in the first tenure band by definition"
+    synonyms: [new hires, hires, hired, hiring, onboarded, new employees, accessions]
+    caveats: >-
+      Agency start date reflects the start in the current agency, so transfers between
+      agencies count as new hires for the receiving agency.
+
+  new_hire_attrition_rate:
+    label: Same-year new-hire attrition
+    description: Share of the fiscal year's new hires who had already separated by June 30.
+    definition: Records that are both new hires and separations / new hires, same fiscal year.
+    type: ratio
+    numerator_sql: count(*) FILTER (WHERE is_new_hire AND is_separation)
+    denominator_sql: count(*) FILTER (WHERE is_new_hire)
+    population_sql: count(*) FILTER (WHERE is_new_hire)
+    format: pct
+    explain: "{numerator:count} of {denominator:count} new hires separated by fiscal year end"
+    unit: of new hires
+    polarity: higher_is_worse
+    dimensions: [agency, location, title, pay_basis]
+    not_defined_by:
+      tenure_band: "every new hire falls in the first tenure band by definition"
+    synonyms: [new hire attrition, new-hire attrition, early attrition, first year attrition, first-year attrition, early turnover, new hire turnover, new-hire turnover]
+    caveats: >-
+      Exposure differs by hire date: someone hired in June has had less time to leave than
+      someone hired in July, so this is a lower bound on true first-year attrition.
+
+  avg_tenure_years:
+    label: Average tenure
+    description: Average years of service in the current agency, for end-of-year headcount.
+    definition: Mean of (June 30 of FY - agency_start_date) in years, over end-of-year headcount with a valid start date.
+    type: aggregate
+    value_sql: avg(tenure_years) FILTER (WHERE is_employed_eoy)
+    population_sql: count(tenure_years) FILTER (WHERE is_employed_eoy)
+    format: years
+    explain: "across {population:count} employees with a valid start date"
+    unit: years
+    polarity: neutral
+    dimensions: [agency, location, title, pay_basis]
+    not_defined_by:
+      tenure_band: "tenure band is derived from tenure itself"
+    synonyms: [tenure, average tenure, avg tenure, years of service, length of service, seniority]
+    caveats: Start dates before 1940 or after the fiscal year end are treated as invalid and excluded.
+
+  median_base_salary:
+    label: Median base salary (annual)
+    description: Median annual base salary for salaried (per Annum) end-of-year headcount.
+    definition: Median of base_salary where pay_basis = 'per Annum', over end-of-year headcount.
+    type: aggregate
+    value_sql: median(base_salary) FILTER (WHERE is_employed_eoy AND pay_basis = 'per Annum')
+    population_sql: count(base_salary) FILTER (WHERE is_employed_eoy AND pay_basis = 'per Annum')
+    format: usd
+    explain: "across {population:count} salaried employees"
+    unit: per year
+    polarity: neutral
+    dimensions: [agency, location, title, tenure_band]
+    not_defined_by:
+      pay_basis: "it is only defined for salaried (per Annum) employees; hourly and daily rates are not annualized"
+    synonyms: [median salary, salary, salaries, base salary, median base salary, compensation, median pay, typical salary]
+    caveats: Hourly and daily rates are excluded rather than annualized, because scheduled hours are not in the source.
+
+  ot_hours_per_worker:
+    label: Overtime hours per worker
+    description: Average overtime hours for employees who worked during the year; a staffing-strain indicator.
+    definition: Sum of ot_hours / count of records with regular hours > 0.
+    type: ratio
+    numerator_sql: sum(ot_hours) FILTER (WHERE worked_in_fy)
+    denominator_sql: count(*) FILTER (WHERE worked_in_fy)
+    population_sql: count(*) FILTER (WHERE worked_in_fy)
+    format: hours
+    explain: "{numerator:count} overtime hours / {denominator:count} workers"
+    unit: hours per worker
+    polarity: higher_is_worse
+    dimensions: [agency, location, title, tenure_band, pay_basis]
+    synonyms: [overtime, overtime hours, ot hours, ot, overtime per employee, overtime per worker, staffing strain]
+    caveats: High overtime can reflect understaffing, but also scheduled coverage models (e.g. uniformed services).
+
+  ot_share_of_pay:
+    label: Overtime share of pay
+    description: Overtime pay as a share of total pay for employees who worked during the year.
+    definition: Sum of total_ot_paid / sum of (regular_gross_paid + total_ot_paid + total_other_pay), for records with regular hours > 0.
+    type: ratio
+    numerator_sql: sum(total_ot_paid) FILTER (WHERE worked_in_fy)
+    denominator_sql: sum(regular_gross_paid + total_ot_paid + total_other_pay) FILTER (WHERE worked_in_fy)
+    population_sql: count(*) FILTER (WHERE worked_in_fy)
+    format: pct
+    explain: "{numerator:usd} overtime pay / {denominator:usd} total pay"
+    unit: of total pay
+    polarity: higher_is_worse
+    dimensions: [agency, location, title, tenure_band, pay_basis]
+    synonyms: [overtime share, ot share, overtime share of pay, share of pay, overtime cost share, share of pay from overtime, overtime percent of pay, overtime pay share, overtime pay]
+    caveats: Pay amounts include retroactive adjustments paid in the fiscal year, which can be negative.

@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "workforce-analytics-hub"
+version = "0.1.0"
+description = "Governed, self-service workforce analytics on public NYC payroll data"
+requires-python = ">=3.11"
+dependencies = [
+    "duckdb==1.5.5",
+    "pandas==3.0.6",
+    "numpy==2.5.3",
+    "pyarrow==25.0.1",
+    "PyYAML==6.0.3",
+    "requests==2.34.2",
+    "streamlit==1.64.0",
+    "plotly==7.1.0",
+    "matplotlib==3.11.2",
+    "openpyxl==3.1.5",
+    "python-pptx==1.0.2",
+]
+
+[project.optional-dependencies]
+llm = ["anthropic==1.8.0"]
+dev = ["pytest==9.1.1"]
+
+[project.scripts]
+wfa = "wfa.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["full_data: runs against the full fetched warehouse (skipped when it is not built)"]

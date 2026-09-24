@@ -1,0 +1,38 @@
+{
+  "is_sample": true,
+  "seed": 42,
+  "per_cell": 250,
+  "note": "Seeded stratified random sample of real rows from the fetched NYC payroll files.",
+  "files": {
+    "payroll_fy2020.csv": {
+      "fiscal_year": 2020,
+      "source_row_count": 4000,
+      "rows_in_full_file": 190724
+    },
+    "payroll_fy2021.csv": {
+      "fiscal_year": 2021,
+      "source_row_count": 4000,
+      "rows_in_full_file": 181128
+    },
+    "payroll_fy2022.csv": {
+      "fiscal_year": 2022,
+      "source_row_count": 4000,
+      "rows_in_full_file": 189807
+    },
+    "payroll_fy2023.csv": {
+      "fiscal_year": 2023,
+      "source_row_count": 4000,
+      "rows_in_full_file": 188235
+    },
+    "payroll_fy2024.csv": {
+      "fiscal_year": 2024,
+      "source_row_count": 4000,
+      "rows_in_full_file": 192933
+    },
+    "payroll_fy2025.csv": {
+      "fiscal_year": 2025,
+      "source_row_count": 4000,
+      "rows_in_full_file": 177046
+    }
+  }
+}

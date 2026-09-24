@@ -1,0 +1,62 @@
+# Source-system definitions. Everything here is a real, public, no-auth source.
+
+payroll:
+  name: NYC Citywide Payroll Data (Fiscal Year)
+  publisher: City of New York, Office of Payroll Administration (via NYC Open Data)
+  dataset_id: k397-673e
+  landing_page: https://data.cityofnewyork.us/City-Government/Citywide-Payroll-Data-Fiscal-Year-/k397-673e
+  api_base: https://data.cityofnewyork.us/resource
+  # FY2020 is fetched so FY2021 turnover has an opening (prior-year) headcount.
+  fiscal_years: [2020, 2021, 2022, 2023, 2024, 2025]
+  page_size: 50000
+  # Data minimization: only these columns are requested from the API.
+  # Name columns (last_name, first_name, mid_init) are never downloaded.
+  columns:
+    - fiscal_year
+    - payroll_number
+    - agency_name
+    - agency_start_date
+    - work_location_borough
+    - title_description
+    - leave_status_as_of_june_30
+    - base_salary
+    - pay_basis
+    - regular_hours
+    - regular_gross_paid
+    - ot_hours
+    - total_ot_paid
+    - total_other_pay
+
+# Scope rule: the 16 largest agencies by FY2025 payroll records, excluding
+# Department of Education and CUNY payrolls (dominated by per-session /
+# per-diem records), Board of Election poll workers (one-day workers), and
+# independently elected offices (District Attorneys). Keyed on payroll_number,
+# which is stable across years; agency_name is not (see code 858).
+agencies:
+  "56":  {name: Police Department, alias: [NYPD, police]}
+  "57":  {name: Fire Department, alias: [FDNY, fire department, fire dept]}
+  "996": {name: NYC Housing Authority, alias: [NYCHA, housing authority]}
+  "846": {name: Parks & Recreation, alias: [parks, DPR]}
+  "69":  {name: Social Services (HRA), alias: [HRA, social services, DSS]}
+  "827": {name: Sanitation, alias: [DSNY, sanitation]}
+  "72":  {name: Correction, alias: [DOC, correction, corrections, department of correction]}
+  "67":  {name: Children's Services (ACS), alias: [ACS, children's services, childrens services]}
+  "816": {name: Health & Mental Hygiene, alias: [DOHMH, health department, health and mental hygiene, department of health]}
+  "841": {name: Transportation, alias: [DOT, transportation]}
+  "826": {name: Environmental Protection, alias: [DEP, environmental protection]}
+  "806": {name: Housing Preservation & Development, alias: [HPD, housing preservation]}
+  "868": {name: Citywide Administrative Services, alias: [DCAS, citywide administrative services]}
+  "71":  {name: Homeless Services, alias: [DHS, homeless services]}
+  "836": {name: Finance, alias: [DOF, finance, department of finance]}
+  "858": {name: Technology & Innovation, alias: [OTI, DoITT, technology and innovation, office of technology]}
+
+benchmark:
+  name: BLS Job Openings and Labor Turnover Survey (JOLTS)
+  publisher: U.S. Bureau of Labor Statistics
+  api: https://api.bls.gov/publicAPI/v1/timeseries/data/
+  series:
+    total_separations_rate: JTU929000000000000TSR
+    quits_rate: JTU929000000000000QUR
+  industry: State and local government, excluding education (national, not seasonally adjusted)
+  start_year: 2019
+  end_year: 2025

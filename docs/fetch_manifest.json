@@ -1,0 +1,82 @@
+{
+  "dataset_id": "k397-673e",
+  "source": "https://data.cityofnewyork.us/City-Government/Citywide-Payroll-Data-Fiscal-Year-/k397-673e",
+  "columns_requested": [
+    "fiscal_year",
+    "payroll_number",
+    "agency_name",
+    "agency_start_date",
+    "work_location_borough",
+    "title_description",
+    "leave_status_as_of_june_30",
+    "base_salary",
+    "pay_basis",
+    "regular_hours",
+    "regular_gross_paid",
+    "ot_hours",
+    "total_ot_paid",
+    "total_other_pay"
+  ],
+  "agency_codes": [
+    "56",
+    "57",
+    "996",
+    "846",
+    "69",
+    "827",
+    "72",
+    "67",
+    "816",
+    "841",
+    "826",
+    "806",
+    "868",
+    "71",
+    "836",
+    "858"
+  ],
+  "files": {
+    "payroll_fy2020.csv": {
+      "fiscal_year": 2020,
+      "where": "fiscal_year=2020 AND payroll_number in ('56','57','67','69','71','72','806','816','826','827','836','841','846','858','868','996')",
+      "source_row_count": 190724,
+      "rows_written": 190724,
+      "fetched_at_utc": "2026-09-23T22:26:42+00:00"
+    },
+    "payroll_fy2021.csv": {
+      "fiscal_year": 2021,
+      "where": "fiscal_year=2021 AND payroll_number in ('56','57','67','69','71','72','806','816','826','827','836','841','846','858','868','996')",
+      "source_row_count": 181128,
+      "rows_written": 181128,
+      "fetched_at_utc": "2026-09-23T22:27:01+00:00"
+    },
+    "payroll_fy2022.csv": {
+      "fiscal_year": 2022,
+      "where": "fiscal_year=2022 AND payroll_number in ('56','57','67','69','71','72','806','816','826','827','836','841','846','858','868','996')",
+      "source_row_count": 189807,
+      "rows_written": 189807,
+      "fetched_at_utc": "2026-09-23T22:27:21+00:00"
+    },
+    "payroll_fy2023.csv": {
+      "fiscal_year": 2023,
+      "where": "fiscal_year=2023 AND payroll_number in ('56','57','67','69','71','72','806','816','826','827','836','841','846','858','868','996')",
+      "source_row_count": 188235,
+      "rows_written": 188235,
+      "fetched_at_utc": "2026-09-23T22:27:37+00:00"
+    },
+    "payroll_fy2024.csv": {
+      "fiscal_year": 2024,
+      "where": "fiscal_year=2024 AND payroll_number in ('56','57','67','69','71','72','806','816','826','827','836','841','846','858','868','996')",
+      "source_row_count": 192933,
+      "rows_written": 192933,
+      "fetched_at_utc": "2026-09-23T22:28:00+00:00"
+    },
+    "payroll_fy2025.csv": {
+      "fiscal_year": 2025,
+      "where": "fiscal_year=2025 AND payroll_number in ('56','57','67','69','71','72','806','816','826','827','836','841','846','858','868','996')",
+      "source_row_count": 177046,
+      "rows_written": 177046,
+      "fetched_at_utc": "2026-09-23T22:28:11+00:00"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+# full fetched data and built warehouses are reproducible with `wfa fetch` + `wfa build`
+data/raw/
+data/*.duckdb
+data/*.duckdb.wal
+reports/
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+.env
