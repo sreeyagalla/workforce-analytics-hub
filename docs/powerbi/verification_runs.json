@@ -1,0 +1,35 @@
+[
+  {
+    "date": "2026-09-24",
+    "power_bi_desktop": "2.157.1354.0",
+    "sample": false,
+    "opened": "pbir",
+    "refresh": "ok",
+    "fact_rows_exported": 5976,
+    "fact_rows_loaded_in_power_bi": 5976,
+    "cells_compared": 6105,
+    "mismatches": 0
+  },
+  {
+    "date": "2026-09-24",
+    "power_bi_desktop": "2.157.1354.0",
+    "sample": true,
+    "opened": "pbir",
+    "refresh": "ok",
+    "fact_rows_exported": 3559,
+    "fact_rows_loaded_in_power_bi": 3559,
+    "cells_compared": 5807,
+    "mismatches": 0
+  },
+  {
+    "date": "2026-09-24",
+    "power_bi_desktop": "2.157.1354.0",
+    "sample": true,
+    "opened": "pbip",
+    "refresh": "ok",
+    "fact_rows_exported": 3559,
+    "fact_rows_loaded_in_power_bi": 3559,
+    "cells_compared": 5807,
+    "mismatches": 0
+  }
+]

@@ -1,4 +1,4 @@
-"""Command line: wfa fetch | build | sample | report | ask | backtest | all
+"""Command line: wfa fetch | build | sample | report | ask | backtest | export-powerbi | all
 
 Add --sample to any command to use the committed sample instead of the full data.
 """
@@ -61,6 +61,18 @@ def cmd_ask(args, paths):
     print(f"  (parser: {a.parser})")
 
 
+def cmd_export_powerbi(args, paths):
+    from pathlib import Path
+
+    from . import powerbi
+    out = Path(args.out) if args.out else settings.PROJECT_ROOT / "exports" / ("powerbi_sample" if paths.is_sample else "powerbi")
+    m = powerbi.export(_con(paths), out, is_sample=paths.is_sample)
+    print(f"Wrote Power BI export to {out}")
+    for name, n in m["tables"].items():
+        print(f"  {name}: {n:,} rows")
+    print(f"Open {out / m['pbip']} in Power BI Desktop, then Home > Refresh to load the data. See docs/powerbi/README.md.")
+
+
 def cmd_backtest(args, paths):
     from . import forecast
     preds, summary = forecast.backtest(_con(paths))
@@ -80,6 +92,8 @@ def main(argv=None):
     a.add_argument("question", nargs="+")
     a.add_argument("--parser", choices=["auto", "rules", "llm"], default=None)
     sub.add_parser("backtest", help="backtest the separations outlook")
+    e = sub.add_parser("export-powerbi", help="write a star-schema export and a Power BI Project (PBIP)")
+    e.add_argument("--out", help="output folder (default exports/powerbi); prefer a folder outside OneDrive")
     sub.add_parser("all", help="fetch + build + report")
     args = p.parse_args(argv)
     paths = settings.get_paths(sample=args.sample)
@@ -91,7 +105,7 @@ def main(argv=None):
         cmd_report(args, paths)
         return
     {"fetch": cmd_fetch, "build": cmd_build, "sample": cmd_sample, "report": cmd_report,
-     "ask": cmd_ask, "backtest": cmd_backtest}[args.cmd](args, paths)
+     "ask": cmd_ask, "backtest": cmd_backtest, "export-powerbi": cmd_export_powerbi}[args.cmd](args, paths)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,83 @@
+// Governed measures generated from config/metrics.yml and config/governance.yml by `wfa export-powerbi`.
+// Each returns BLANK for: more than one fiscal year in context, groups below the minimum cell size,
+// and breakdowns the catalog does not define for that metric.
+
+// Count of records with June 30 status ACTIVE, ON LEAVE, or ON SEPARATION LEAVE.
+[Headcount (end of year)] =
+VAR n = SUM ( fact_workforce[headcount] )
+VAR population = SUM ( fact_workforce[headcount] )
+RETURN
+    IF ( NOT HASONEVALUE ( dim_fiscal_year[fiscal_year] ) || population < 10, BLANK (), n )
+
+// Count of records with June 30 status CEASED and regular hours > 0 in the fiscal year.
+[Separations] =
+VAR n = SUM ( fact_workforce[separations] )
+VAR population = SUM ( fact_workforce[records] )
+RETURN
+    IF ( NOT HASONEVALUE ( dim_fiscal_year[fiscal_year] ) || population < 10, BLANK (), n )
+
+// Separations / ((prior-FY end-of-year headcount + current-FY end-of-year headcount) / 2).
+[Turnover rate] =
+VAR fy = SELECTEDVALUE ( dim_fiscal_year[fiscal_year] )
+VAR separations = SUM ( fact_workforce[separations] )
+VAR hc_current = SUM ( fact_workforce[headcount] )
+VAR hc_prior =
+    CALCULATE (
+        SUM ( fact_workforce[headcount] ),
+        REMOVEFILTERS ( dim_fiscal_year ),
+        REMOVEFILTERS ( fact_workforce[fiscal_year] ),
+        dim_fiscal_year[fiscal_year] = fy - 1
+    )
+VAR avg_headcount = IF ( ISBLANK ( hc_prior ), BLANK (), ( hc_prior + hc_current ) / 2 )
+RETURN
+    IF ( NOT HASONEVALUE ( dim_fiscal_year[fiscal_year] ) || ISCROSSFILTERED ( dim_tenure_band ) || ISFILTERED ( fact_workforce[tenure_band] ) || ISBLANK ( avg_headcount ) || avg_headcount < 10, BLANK (),
+        DIVIDE ( separations, avg_headcount ) )
+
+// Count of records with agency_start_date between July 1 (FY-1) and June 30 (FY).
+[New hires] =
+VAR n = SUM ( fact_workforce[new_hires] )
+VAR population = SUM ( fact_workforce[records] )
+RETURN
+    IF ( NOT HASONEVALUE ( dim_fiscal_year[fiscal_year] ) || ISCROSSFILTERED ( dim_tenure_band ) || ISFILTERED ( fact_workforce[tenure_band] ) || population < 10, BLANK (), n )
+
+// Records that are both new hires and separations / new hires, same fiscal year.
+[Same-year new-hire attrition] =
+VAR num = SUM ( fact_workforce[new_hire_separations] )
+VAR den = SUM ( fact_workforce[new_hires] )
+VAR population = SUM ( fact_workforce[new_hires] )
+RETURN
+    IF ( NOT HASONEVALUE ( dim_fiscal_year[fiscal_year] ) || ISCROSSFILTERED ( dim_tenure_band ) || ISFILTERED ( fact_workforce[tenure_band] ) || population < 10, BLANK (), DIVIDE ( num, den ) )
+
+// Mean of (June 30 of FY - agency_start_date) in years, over end-of-year headcount with a valid start date.
+[Average tenure] =
+VAR num = SUM ( fact_workforce[tenure_years_sum] )
+VAR den = SUM ( fact_workforce[tenure_count] )
+VAR population = SUM ( fact_workforce[tenure_count] )
+RETURN
+    IF ( NOT HASONEVALUE ( dim_fiscal_year[fiscal_year] ) || ISCROSSFILTERED ( dim_tenure_band ) || ISFILTERED ( fact_workforce[tenure_band] ) || population < 10, BLANK (), DIVIDE ( num, den ) )
+
+// Median of base_salary where pay_basis = 'per Annum', over end-of-year headcount.
+[Median base salary (annual)] =
+VAR by_agency = SELECTEDVALUE ( agg_median_salary[median_base_salary] )
+VAR all_agencies = SELECTEDVALUE ( agg_median_salary_total[median_base_salary] )
+RETURN
+    IF ( NOT HASONEVALUE ( dim_fiscal_year[fiscal_year] ) || ISCROSSFILTERED ( dim_pay_basis ) || ISFILTERED ( fact_workforce[pay_basis] ) || ISCROSSFILTERED ( dim_location ) || ISCROSSFILTERED ( dim_tenure_band ), BLANK (),
+        IF ( ISCROSSFILTERED ( dim_agency ),
+            IF ( HASONEVALUE ( dim_agency[agency_code] ), by_agency, BLANK () ),
+            all_agencies ) )
+
+// Sum of ot_hours / count of records with regular hours > 0.
+[Overtime hours per worker] =
+VAR num = CONVERT ( SUM ( fact_workforce[ot_hours] ), DOUBLE )
+VAR den = SUM ( fact_workforce[workers] )
+VAR population = SUM ( fact_workforce[workers] )
+RETURN
+    IF ( NOT HASONEVALUE ( dim_fiscal_year[fiscal_year] ) || population < 10, BLANK (), DIVIDE ( num, den ) )
+
+// Sum of total_ot_paid / sum of (regular_gross_paid + total_ot_paid + total_other_pay), for records with regular hours > 0.
+[Overtime share of pay] =
+VAR num = CONVERT ( SUM ( fact_workforce[ot_pay] ), DOUBLE )
+VAR den = SUM ( fact_workforce[total_pay] )
+VAR population = SUM ( fact_workforce[workers] )
+RETURN
+    IF ( NOT HASONEVALUE ( dim_fiscal_year[fiscal_year] ) || population < 10, BLANK (), DIVIDE ( num, den ) )

@@ -32,9 +32,10 @@ Generated report pack: [Excel](docs/sample_output/workforce_scorecard_FY2025.xls
 | Translating business questions into analyses, with explicit guardrails | `src/wfa/qa/` (rules by default, optional LLM parser) |
 | External benchmark (BLS JOLTS) for industry context | `src/wfa/bls.py` |
 | Workforce planning: separations outlook with an honest backtest | `src/wfa/forecast.py`, dashboard "Planning" tab |
+| Power BI-ready semantic model: star schema + the governed metrics as DAX measures, verified in Power BI's own engine | `wfa export-powerbi` (`src/wfa/powerbi.py`), [docs/powerbi](docs/powerbi/README.md) |
 
-Stack: Python, SQL (DuckDB), pandas, Streamlit, Plotly, matplotlib, openpyxl, python-pptx, pytest.
-Optional: the Anthropic SDK (only used if `ANTHROPIC_API_KEY` is set).
+Stack: Python, SQL (DuckDB), pandas, Streamlit, Plotly, matplotlib, openpyxl, python-pptx, pytest, and a
+Power BI semantic model (TMDL + DAX). Optional: the Anthropic SDK (only used if `ANTHROPIC_API_KEY` is set).
 
 ## Architecture
 
@@ -60,12 +61,12 @@ NYC Open Data (Socrata API, no auth)                   BLS public API v1 (no key
    SQL + definitions +     small-cell suppression        RAG thresholds, location map)
    allowed breakdowns)     is applied inside it
             |
-   +--------+-------------+--------------------+-------------------+
-   v                      v                    v                   v
- Streamlit dashboard   Excel + PowerPoint   Q&A engine            Planning
- (7 tabs)              (wfa report)         precheck guardrails   rate x headcount,
-                                            -> parser (rules | LLM) backtested
-                                            -> validate -> compute
+   +--------+-------------+--------------------+-------------------+------------------+
+   v                      v                    v                   v                  v
+ Streamlit dashboard   Excel + PowerPoint   Q&A engine            Planning           Power BI export
+ (7 tabs)              (wfa report)         precheck guardrails   rate x headcount,  star schema CSVs +
+                                            -> parser (rules | LLM) backtested       PBIP: TMDL model,
+                                            -> validate -> compute                   9 DAX measures
                                             -> templated answer
 ```
 
@@ -160,7 +161,11 @@ with an icon and a text label, never color alone.
 
   The simplest methods are about as good as anything here, so the outlook is labelled a planning
   baseline, not a forecast.
-- **Tests:** 343 pytest tests pass. 205 run on the committed sample; 138 run on the full
+- **Power BI:** the exported model was opened in Power BI Desktop 2.157, refreshed, and queried with
+  DAX. All 9 measures matched the governed metric layer on every cell compared: 6,105 on the full
+  data and 5,807 on the sample, 0 mismatches, including suppressed groups and agency × location
+  combinations. Details: [docs/powerbi](docs/powerbi/README.md).
+- **Tests:** 393 pytest tests pass. 255 run on the committed sample; 138 run on the full
   1.1M-record warehouse when it is built locally.
 - **Build times on the development laptop:**
 
@@ -224,6 +229,10 @@ threshold, the agency count, or numbers the user typed.
 - **The benchmark is not like-for-like.** It covers a different population and uses a different
   method.
 - **The dashboard runs locally only.** It is not deployed, and only the light theme is configured.
+- **Power BI: the model is built and verified, the report is not.** The export ships the semantic model
+  and one empty report page. Microsoft still lists Power BI Projects as a preview feature. The engine
+  verification (`scripts/verify_powerbi.py`) needs Windows and Power BI Desktop, so it isn't part of
+  pytest; it was run on one machine with Desktop 2.157.
 
 ## Run it
 
@@ -249,6 +258,10 @@ wfa ask "Which agency had the highest new-hire attrition in 2024?"
 wfa ask "Why did turnover go up at Correction?"    # refused: causal
 
 pytest                              # full-data tests are skipped until `wfa build` has run
+
+# Power BI: star schema + Power BI Project (open the .pbip, then Home > Refresh)
+wfa export-powerbi --out C:\pbi\workforce
+python scripts/verify_powerbi.py --out C:\pbi\verify   # optional: check the DAX in Power BI's engine
 ```
 
 Optional:
@@ -261,13 +274,15 @@ Optional:
 
 ```
 config/            sources.yml (data sources, agency scope), metrics.yml (catalog), governance.yml
-src/wfa/           ingest, bls, warehouse, quality, metrics, scorecard, forecast, charts, reports, cli
+src/wfa/           ingest, bls, warehouse, quality, metrics, scorecard, forecast, charts, reports, powerbi, cli
 src/wfa/qa/        spec, vocab, guardrails, rules, llm, compose, engine
 app/               streamlit_app.py
 tests/             reference.py (independent pandas implementation), grounding.py, test_*.py
 data/sample/       seeded sample of real rows + manifest (committed)
 data/benchmarks/   BLS JOLTS fiscal-year rates (committed)
-docs/              screenshots, sample_output (real-data Excel + PowerPoint), fetch_manifest.json
+docs/              screenshots, sample_output (real-data Excel + PowerPoint), fetch_manifest.json,
+                   powerbi/ (guide, generated measures.dax, verification results)
+scripts/           screenshots.py, verify_powerbi.py + run_dax.ps1 (Power BI engine check)
 ```
 
 Data: NYC Open Data, used under the NYC Open Data Terms of Use. BLS data is in the public domain.
