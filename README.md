@@ -8,6 +8,11 @@ plain-English question box that only answers from computed data.
 
 It is a solo portfolio project. It has no users, and nothing here claims business impact.
 
+**Live demo: https://workforce-analytics-app.streamlit.app/**. It runs on the committed
+24,000-row sample (250 real records per agency per year), labelled on every page, so its numbers
+differ from the full-data results below. If the app has been idle, Streamlit may ask you to wake it
+up first.
+
 ![Overview](docs/screenshots/overview.png)
 
 More screenshots (from the full data):
@@ -228,7 +233,9 @@ threshold, the agency count, or numbers the user typed.
   suppressed cell could be derived by subtracting published cells from a total.
 - **The benchmark is not like-for-like.** It covers a different population and uses a different
   method.
-- **The dashboard runs locally only.** It is not deployed, and only the light theme is configured.
+- **The hosted demo uses the sample, not the full data.** The live app on Streamlit Community Cloud
+  builds its database from the committed 24,000-row sample; the full 1.1M-record dashboard runs
+  locally after `wfa fetch` and `wfa build`. Only the light theme is configured.
 - **Power BI: the model is built and verified, the report is not.** The export ships the semantic model
   and one empty report page. Microsoft still lists Power BI Projects as a preview feature. The engine
   verification (`scripts/verify_powerbi.py`) needs Windows and Power BI Desktop, so it isn't part of
